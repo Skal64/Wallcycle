@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>WallCycle</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Custom Tooltip Styling */
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            cursor: help;
+        }
+        .tooltip-container .tooltip-box {
+            display: none;
+            position: absolute;
+            bottom: 160%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card, #1e1e2e);
+            color: var(--text-primary, #cdd6f4);
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color, #45475a);
+            font-size: 0.75rem;
+            width: 240px;
+            z-index: 20000;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            text-align: left;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+        .tooltip-container:hover .tooltip-box {
+            display: block;
+        }
+        .tooltip-box a {
+            color: #58a6ff;
+            text-decoration: underline;
+            pointer-events: auto;
+        }
+
+        /* Fixed Modal Overlay States with GPU Repaint */
+        #settingsModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transform: translateZ(0);
+        }
+        #settingsModal.open {
+            display: flex !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Custom Draggable Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-drag" style="display: flex; align-items: center; gap: 8px;">
+            <span class="app-title">WallCycle</span>
+            <button id="openSettingsBtn" class="titlebar-gear-btn" title="Settings">⚙️</button>
+        </div>
+        <div class="window-controls">
+            <button id="minBtn" class="win-control-btn">−</button>
+            <button id="closeBtn" class="win-control-btn close">×</button>
+        </div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Sidebar for Collections -->
+        <aside class="sidebar">
+            <button id="allWallpapersBtn" class="collection-item active" style="margin-bottom: 16px;">All Wallpapers</button>
+
+            <div class="sidebar-header">
+                <h3>Collections</h3>
+                <button id="newCollectionBtn" class="icon-btn" title="New Collection">+</button>
+            </div>
+            
+            <div id="newCollectionContainer" class="new-col-container" style="display: none;">
+                <input type="text" id="newCollectionInput" placeholder="Collection name..." />
+                <button id="saveCollectionBtn" class="icon-btn" title="Save">✓</button>
+            </div>
+
+            <ul id="collectionList" class="collection-list"></ul>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="app-content">
+            <header>
+                <div class="header-info">
+                    <h1 id="collectionTitle">All Wallpapers</h1>
+                    <p id="statusText">No images selected</p>
+                </div>
+                <div class="header-actions" style="display: flex; gap: 10px;">
+                    <button id="openSearchBtn" class="btn secondary-btn" style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        Search Online
+                    </button>
+                    <button id="selectImagesBtn" class="btn primary-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Select Images
+                    </button>
+                </div>
+            </header>
+
+            <div class="grid-container" id="imageGrid">
+                <div class="empty-state">
+                    <div class="empty-icon">🖼️</div>
+                    <h3>No wallpapers added</h3>
+                    <p>Click "Select Images" to choose your favorite wallpapers.</p>
+                    <button id="emptySelectBtn" class="btn secondary-btn">Select Images</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Collection Right-Click Context Menu -->
+    <div id="collectionContextMenu" class="card-dropdown" style="position: fixed; display: none; z-index: 2000;">
+        <button class="dropdown-item" id="ctxRenameCol">✏️ Rename Collection</button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item delete" id="ctxDeleteCol">🗑️ Delete Collection</button>
+    </div>
+
+    <!-- Modern Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-card" style="position: relative; z-index: 100000; pointer-events: auto;">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="closeSettingsBtn" class="modal-close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-title">Appearance Theme</span>
+                        <span class="setting-desc">Select your preferred color scheme</span>
+                    </div>
+                    <select id="themeSelect" class="setting-select">
+                        <option value="dark">Dark (Default)</option>
+                        <option value="light">Catppuccin Latte (Light)</option>
+                        <option value="tokyo-night">Tokyo Night</option>
+                        <option value="catppuccin">Catppuccin Mocha</option>
+                    </select>
+                </div>
+                <div class="setting-item" style="margin-top: 16px;">
+                    <div class="setting-info">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="setting-title">Pixabay API Key</span>
+                            <div class="tooltip-container">
+                                <span style="background: var(--border-color, #444); color: var(--text-primary, #fff); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">?</span>
+                                <div class="tooltip-box">
+                                    You must make an account on Pixabay first. Your API key can be found at <a href="https://pixabay.com/api/docs/" target="_blank">https://pixabay.com/api/docs/</a> under parameters.
+                                </div>
+                            </div>
+                        </div>
+                        <span class="setting-desc">Required to search and download online wallpapers</span>
+                    </div>
+                    <input type="password" id="pixabayKeyInput" class="setting-input" placeholder="Paste your API key..." style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 10px; border-radius: 4px; width: 220px; font-size: 0.85rem;" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Modal Overlay -->
+    <div class="search-modal" id="searchModal" style="display: none;">
+        <div class="search-container">
+            <div class="search-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--sidebar-bg);">
+                <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Search Wallpapers Online</h3>
+                <button class="icon-btn" id="closeSearchBtn" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">&times;</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchQueryInput" placeholder="Search (e.g. cyberpunk, anime, nature)...">
+                <select id="resolutionSelect" class="setting-select">
+                    <option value="1920x1080">1920 x 1080 (FHD)</option>
+                    <option value="2560x1440">2560 x 1440 (QHD)</option>
+                    <option value="3840x2160">3840 x 2160 (4K)</option>
+                    <option value="1024x768">1024 x 768</option>
+                </select>
+                <button class="btn primary-btn" id="fetchWallpapersBtn">Search</button>
+            </div>
+            <div class="search-results-grid" id="searchResultsGrid">
+                <p class="empty-state" style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px;">Type a keyword and choose a resolution to find wallpapers.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
