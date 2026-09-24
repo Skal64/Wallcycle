@@ -1,10 +1,26 @@
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, webFrame } = require('electron');
+
+// Enable dynamic zoom controls (Ctrl + +, Ctrl + -, Ctrl + 0)
+window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey) {
+        let currentZoom = webFrame.getZoomFactor();
+        if (e.key === '=' || e.key === '+') {
+            e.preventDefault();
+            webFrame.setZoomFactor(Math.min(currentZoom + 0.1, 3.0)); // Max zoom 300%
+        } else if (e.key === '-' || e.key === '_') {
+            e.preventDefault();
+            webFrame.setZoomFactor(Math.max(currentZoom - 0.1, 0.5)); // Min zoom 50%
+        } else if (e.key === '0') {
+            e.preventDefault();
+            webFrame.setZoomFactor(1.0); // Reset zoom
+        }
+    }
+});
 
 document.getElementById('minBtn').addEventListener('click', () => ipcRenderer.send('window-minimize'));
 document.getElementById('closeBtn').addEventListener('click', () => ipcRenderer.send('window-close'));
 
 const selectImagesBtn = document.getElementById('selectImagesBtn');
-const emptySelectBtn = document.getElementById('emptySelectBtn');
 const statusText = document.getElementById('statusText');
 const imageGrid = document.getElementById('imageGrid');
 const allWallpapersBtn = document.getElementById('allWallpapersBtn');
@@ -20,7 +36,7 @@ const openSettingsBtn = document.getElementById('openSettingsBtn');
 const settingsModal = document.getElementById('settingsModal');
 const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 const themeSelect = document.getElementById('themeSelect');
-const pixabayKeyInput = document.getElementById('pixabayKeyInput'); // Add this input to your settings HTML modal!
+const pixabayKeyInput = document.getElementById('pixabayKeyInput');
 const collectionContextMenu = document.getElementById('collectionContextMenu');
 const ctxRenameCol = document.getElementById('ctxRenameCol');
 const ctxDeleteCol = document.getElementById('ctxDeleteCol');
@@ -256,7 +272,6 @@ async function handleImageSelection() {
 }
 
 selectImagesBtn.addEventListener('click', handleImageSelection);
-if (emptySelectBtn) emptySelectBtn.addEventListener('click', handleImageSelection);
 
 function displayImages(images) {
     imageGrid.innerHTML = '';
@@ -287,7 +302,7 @@ function displayImages(images) {
         return;
     }
 
-    statusText.innerText = `${images.length} images shown`;
+    statusText.innerText = `${images.length} images shown (${allImages.length} total)`;
 
     images.forEach((imgPath) => {
         const card = document.createElement('div');
@@ -417,7 +432,7 @@ window.addEventListener('click', () => {
     collectionContextMenu.style.display = 'none';
 });
 
-// --- ONLINE WALLPAPER SEARCH FEATURE ---
+// --- ONLINE WALLPAPER SEARCH FEATURE --- 
 
 document.addEventListener('DOMContentLoaded', () => {
     const openSearchBtn = document.getElementById('openSearchBtn');
@@ -449,9 +464,8 @@ if (searchModal) {
 }
 
 async function performSearch(append = false) {
-    // Check if API key is present before searching (removed alert to prevent Electron focus locking bug)
     if (!pixabayApiKey) {
-        if (searchModal) searchModal.style.display = 'none'; // Close search modal if open
+        if (searchModal) searchModal.style.display = 'none';
         if (settingsModal) {
             settingsModal.classList.add('open');
             void settingsModal.offsetHeight;
@@ -497,9 +511,9 @@ async function performSearch(append = false) {
             return;
         }
 
-        data.hits.forEach((photo, index) => {
+        data.hits.forEach((photo) => {
             const imageUrl = photo.largeImageURL; 
-            const previewUrl = photo.previewURL;   
+            const previewUrl = photo.previewURL;  
             
             const rawTags = photo.tags ? photo.tags.split(',')[0].trim() : currentSearchQuery;
             const capitalizedTag = rawTags.charAt(0).toUpperCase() + rawTags.slice(1);

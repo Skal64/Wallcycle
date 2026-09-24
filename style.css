@@ -172,14 +172,15 @@ body {
     border: 1px solid var(--border-color);
 }
 
-/* Main Content Section */
+/* Main Content Section - Scrollable Viewport */
 .app-content {
     flex: 1;
     padding: 24px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto !important;
     background: var(--bg-color);
+    min-width: 0;
 }
 
 header {
@@ -251,35 +252,43 @@ header {
     border-color: #334155;
 }
 
-/* Image Grid Container */
-.grid-container {
-    flex: 1;
+/* Image Grid Container - Proper scrolling & full-size cards */
+.grid-container,
+#imageGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    padding: 20px;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
-    padding: 20px;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 16px;
+    
+    flex: none !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    box-sizing: border-box;
     align-content: start;
 }
 
-/* Custom Scrollbar */
-.grid-container::-webkit-scrollbar,
+/* Custom Scrollbars for Content Area & Sidebar */
+.app-content::-webkit-scrollbar,
 .collection-list::-webkit-scrollbar {
     width: 6px;
 }
-.grid-container::-webkit-scrollbar-track,
+
+.app-content::-webkit-scrollbar-track,
 .collection-list::-webkit-scrollbar-track {
     background: transparent;
 }
-.grid-container::-webkit-scrollbar-thumb,
+
+.app-content::-webkit-scrollbar-thumb,
 .collection-list::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 3px;
 }
-.grid-container::-webkit-scrollbar-thumb:hover,
+
+.app-content::-webkit-scrollbar-thumb:hover,
 .collection-list::-webkit-scrollbar-thumb:hover {
     background: #334155;
 }
@@ -287,7 +296,7 @@ header {
 /* Empty State */
 .empty-state {
     grid-column: 1 / -1;
-    height: 100%;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -320,13 +329,18 @@ header {
     border: 1px solid var(--border-color);
     border-radius: 10px;
     overflow: hidden;
-    cursor: pointer;
+    cursor: grab;
+    user-select: none;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     opacity: 0;
     animation: fadeIn 0.4s ease forwards;
     position: relative;
+}
+
+.thumb-card:active {
+    cursor: grabbing;
 }
 
 .thumb-card:hover {
@@ -358,7 +372,8 @@ header {
     width: 100%;
     height: 120px;
     background: #000;
-    overflow: hidden;
+    overflow: visible !important;
+    position: relative;
 }
 
 .thumb-img {
@@ -366,6 +381,8 @@ header {
     height: 100%;
     object-fit: cover;
     transition: transform 0.35s ease;
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .thumb-card:hover .thumb-img {
@@ -394,10 +411,6 @@ header {
 }
 
 /* Card Hover Overlay for Collections */
-.thumb-img-wrapper {
-    position: relative;
-}
-
 .card-overlay {
     position: absolute;
     inset: 0;
@@ -551,7 +564,7 @@ header {
 /* Card Dropdown Menu */
 .card-dropdown {
     position: absolute;
-    top: 40px;
+    top: 38px;
     right: 8px;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -559,7 +572,7 @@ header {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     display: none;
     flex-direction: column;
-    z-index: 20;
+    z-index: 99999;
     min-width: 150px;
     overflow: hidden;
     animation: fadeIn 0.15s ease forwards;
@@ -612,22 +625,11 @@ header {
     margin: 2px 0;
 }
 
-/* GPU Acceleration & Smooth Scrolling */
-.app-layout, .grid-container, .sidebar {
+/* GPU Acceleration */
+.app-layout, .sidebar {
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000px;
-}
-
-.thumb-img {
-    will-change: transform;
-    transform: translateZ(0);
-}
-
-.grid-container {
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
 }
 
 /* Card Loading State */
@@ -662,16 +664,6 @@ header {
     to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* Draggable Cards */
-.thumb-card {
-    cursor: grab;
-    user-select: none;
-}
-
-.thumb-card:active {
-    cursor: grabbing;
-}
-
 /* Sidebar Drop Target Feedback */
 .collection-item.drag-over {
     background: var(--surface-hover);
@@ -679,7 +671,7 @@ header {
     color: var(--accent-color);
 }
 
-/* --- AUTHENTIC PALETTES --- */
+/* --- AUTHENTIC PALETTES & THEMES --- */
 
 :root, [data-theme="dark"] {
     --bg-color: #121212;
@@ -695,7 +687,6 @@ header {
     --danger-color: #ef4444;
 }
 
-/* Authentic Catppuccin Latte (Clean App Light Mode) */
 [data-theme="light"] {
     --bg-color: #eff1f5;
     --sidebar-bg: #e6e9ef;
@@ -710,12 +701,11 @@ header {
     --danger-color: #d20f39;
 }
 
-/* Authentic Tokyo Night (VS Code / Neovim Port) */
 [data-theme="tokyo-night"] {
     --bg-color: #1a1b26;
     --sidebar-bg: #16161e;
     --surface-color: #24283b;
-    --surface-hover: #2f354a;
+    --sidebar-hover: #2f354a;
     --border-color: #292e42;
     --accent-color: #7aa2f7;
     --accent-hover: #89b4fa;
@@ -725,7 +715,6 @@ header {
     --danger-color: #f7768e;
 }
 
-/* Authentic Catppuccin Mocha (Flagship Dark) */
 [data-theme="catppuccin"] {
     --bg-color: #1e1e2e;
     --sidebar-bg: #181825;
@@ -749,7 +738,7 @@ header {
     font-size: 13px;
     padding: 2px 6px;
     border-radius: 4px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
@@ -757,8 +746,8 @@ header {
 }
 
 .titlebar-gear-btn:hover {
-    background: var(--card-hover);
-    color: var(--text-main);
+    background: var(--surface-hover);
+    color: var(--text-primary);
     transform: rotate(30deg);
 }
 
@@ -795,14 +784,14 @@ header {
 .modal-header h2 {
     font-size: 18px;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--text-primary);
     margin: 0;
 }
 
 .modal-close-btn {
     background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-size: 20px;
     cursor: pointer;
     padding: 4px 8px;
@@ -811,8 +800,8 @@ header {
 }
 
 .modal-close-btn:hover {
-    background: var(--card-hover);
-    color: var(--text-main);
+    background: var(--surface-hover);
+    color: var(--text-primary);
 }
 
 .modal-body {
@@ -835,12 +824,12 @@ header {
 .setting-title {
     font-size: 14px;
     font-weight: 500;
-    color: var(--text-main);
+    color: var(--text-primary);
 }
 
 .setting-desc {
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 .setting-select {
@@ -862,11 +851,6 @@ header {
 
 .setting-select:hover, .setting-select:focus {
     border-color: var(--accent-color);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.98); }
-    to { opacity: 1; transform: scale(1); }
 }
 
 /* Search Modal Styles */
@@ -922,34 +906,33 @@ header {
 }
 
 #collectionContextMenu {
-    position: fixed; /* or absolute depending on your layout */
+    position: fixed;
     display: none;
     flex-direction: column;
-    width: max-content;       /* Makes the menu wrap tightly around the text */
-    min-width: 140px;         /* Gives it a clean minimum width */
-    background: var(--bg-card, #1a1d24);
-    border: 1px solid var(--border-color, #2a2e39);
+    width: max-content;
+    min-width: 140px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
 }
 
-/* Optional: Ensure individual items inside the menu don't stretch weirdly */
 #collectionContextMenu button {
     width: 100%;
     text-align: left;
     background: transparent;
     border: none;
     padding: 8px 12px;
-    color: var(--text-primary, #fff);
+    color: var(--text-primary);
     cursor: pointer;
     border-radius: 4px;
     font-size: 0.85rem;
 }
 
 #collectionContextMenu button:hover {
-    background: var(--accent-color, #3b82f6);
+    background: var(--accent-color);
 }
 
 #settingsModal {
@@ -964,8 +947,9 @@ header {
     align-items: center;
     justify-content: center;
     pointer-events: auto;
-    transform: translateZ(0); /* Forces GPU layer refresh */
+    transform: translateZ(0);
 }
+
 #settingsModal.open {
     display: flex !important;
 }
