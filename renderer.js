@@ -6,13 +6,13 @@ window.addEventListener('keydown', (e) => {
         let currentZoom = webFrame.getZoomFactor();
         if (e.key === '=' || e.key === '+') {
             e.preventDefault();
-            webFrame.setZoomFactor(Math.min(currentZoom + 0.1, 3.0)); // Max zoom 300%
+            webFrame.setZoomFactor(Math.min(currentZoom + 0.1, 3.0));
         } else if (e.key === '-' || e.key === '_') {
             e.preventDefault();
-            webFrame.setZoomFactor(Math.max(currentZoom - 0.1, 0.5)); // Min zoom 50%
+            webFrame.setZoomFactor(Math.max(currentZoom - 0.1, 0.5));
         } else if (e.key === '0') {
             e.preventDefault();
-            webFrame.setZoomFactor(1.0); // Reset zoom
+            webFrame.setZoomFactor(1.0);
         }
     }
 });
@@ -37,6 +37,7 @@ const settingsModal = document.getElementById('settingsModal');
 const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 const themeSelect = document.getElementById('themeSelect');
 const pixabayKeyInput = document.getElementById('pixabayKeyInput');
+const wallhavenKeyInput = document.getElementById('wallhavenKeyInput');
 const collectionContextMenu = document.getElementById('collectionContextMenu');
 const ctxRenameCol = document.getElementById('ctxRenameCol');
 const ctxDeleteCol = document.getElementById('ctxDeleteCol');
@@ -46,6 +47,7 @@ let collections = JSON.parse(localStorage.getItem('wallcycle_collections')) || {
 let imageNames = JSON.parse(localStorage.getItem('wallcycle_names')) || {};
 let currentTheme = localStorage.getItem('wallcycle_theme') || 'dark';
 let pixabayApiKey = localStorage.getItem('wallcycle_pixabay_key') || '';
+let wallhavenApiKey = localStorage.getItem('wallcycle_wallhaven_key') || '';
 let activeCollection = 'all';
 
 let currentSearchQuery = '';
@@ -60,6 +62,7 @@ let contextTargetColId = null;
 document.documentElement.setAttribute('data-theme', currentTheme);
 themeSelect.value = currentTheme;
 if (pixabayKeyInput) pixabayKeyInput.value = pixabayApiKey;
+if (wallhavenKeyInput) wallhavenKeyInput.value = wallhavenApiKey;
 renderCollections();
 updateDisplay();
 
@@ -85,6 +88,13 @@ if (pixabayKeyInput) {
     pixabayKeyInput.addEventListener('input', (e) => {
         pixabayApiKey = e.target.value.trim();
         localStorage.setItem('wallcycle_pixabay_key', pixabayApiKey);
+    });
+}
+
+if (wallhavenKeyInput) {
+    wallhavenKeyInput.addEventListener('input', (e) => {
+        wallhavenApiKey = e.target.value.trim();
+        localStorage.setItem('wallcycle_wallhaven_key', wallhavenApiKey);
     });
 }
 
@@ -449,6 +459,7 @@ const closeSearchBtn = document.getElementById('closeSearchBtn');
 const fetchWallpapersBtn = document.getElementById('fetchWallpapersBtn');
 const searchQueryInput = document.getElementById('searchQueryInput');
 const resolutionSelect = document.getElementById('resolutionSelect');
+const wallpaperProviderSelect = document.getElementById('wallpaperProviderSelect');
 const searchResultsGrid = document.getElementById('searchResultsGrid');
 
 if (closeSearchBtn) {
@@ -464,12 +475,24 @@ if (searchModal) {
 }
 
 async function performSearch(append = false) {
-    if (!pixabayApiKey) {
+    const provider = wallpaperProviderSelect ? wallpaperProviderSelect.value : 'pixabay';
+
+    // Validate respective API key
+    if (provider === 'pixabay' && !pixabayApiKey) {
         if (searchModal) searchModal.style.display = 'none';
         if (settingsModal) {
             settingsModal.classList.add('open');
             void settingsModal.offsetHeight;
             if (pixabayKeyInput) pixabayKeyInput.focus();
+        }
+        return;
+    }
+    if (provider === 'wallhaven' && !wallhavenApiKey) {
+        if (searchModal) searchModal.style.display = 'none';
+        if (settingsModal) {
+            settingsModal.classList.add('open');
+            void settingsModal.offsetHeight;
+            if (wallhavenKeyInput) wallhavenKeyInput.focus();
         }
         return;
     }
@@ -482,21 +505,22 @@ async function performSearch(append = false) {
     }
 
     try {
-        const data = await ipcRenderer.invoke('fetch-pixabay-wallpapers', { 
-            query: currentSearchQuery, 
-            resolution: currentSearchResolution, 
-            page: searchPage,
-            apiKey: pixabayApiKey
-        });
+        let rawData = null;
 
-        if (data && data.error === 'NO_API_KEY') {
-            if (searchModal) searchModal.style.display = 'none';
-            if (settingsModal) {
-                settingsModal.classList.add('open');
-                void settingsModal.offsetHeight;
-                if (pixabayKeyInput) pixabayKeyInput.focus();
-            }
-            return;
+        if (provider === 'pixabay') {
+            rawData = await ipcRenderer.invoke('fetch-pixabay-wallpapers', { 
+                query: currentSearchQuery, 
+                resolution: currentSearchResolution, 
+                page: searchPage,
+                apiKey: pixabayApiKey
+            });
+        } else if (provider === 'wallhaven') {
+            rawData = await ipcRenderer.invoke('fetch-wallhaven-wallpapers', { 
+                query: currentSearchQuery, 
+                resolution: currentSearchResolution, 
+                page: searchPage,
+                apiKey: wallhavenApiKey
+            });
         }
 
         if (!append) {
@@ -506,18 +530,36 @@ async function performSearch(append = false) {
             if (existingLoadMore) existingLoadMore.remove();
         }
 
-        if ((!data.hits || data.hits.length === 0) && !append) {
+        // Normalize hits array across providers (Pixabay uses .hits, Wallhaven uses .data)
+        let itemsList = [];
+        if (provider === 'pixabay' && rawData && rawData.hits) {
+            itemsList = rawData.hits;
+        } else if (provider === 'wallhaven' && rawData && rawData.data) {
+            itemsList = rawData.data;
+        }
+
+        if (itemsList.length === 0 && !append) {
             searchResultsGrid.innerHTML = '<p class="empty-state" style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px;">No wallpapers found. Try a broader search term or check your API key!</p>';
             return;
         }
 
-        data.hits.forEach((photo) => {
-            const imageUrl = photo.largeImageURL; 
-            const previewUrl = photo.previewURL;  
-            
-            const rawTags = photo.tags ? photo.tags.split(',')[0].trim() : currentSearchQuery;
-            const capitalizedTag = rawTags.charAt(0).toUpperCase() + rawTags.slice(1);
-            const photoName = `${capitalizedTag} (${photo.imageWidth}x${photo.imageHeight})`;
+        itemsList.forEach((item) => {
+            let imageUrl = '';
+            let previewUrl = '';
+            let photoName = '';
+
+            if (provider === 'pixabay') {
+                imageUrl = item.largeImageURL;
+                previewUrl = item.previewURL;
+                const rawTags = item.tags ? item.tags.split(',')[0].trim() : currentSearchQuery;
+                const capitalizedTag = rawTags.charAt(0).toUpperCase() + rawTags.slice(1);
+                photoName = `${capitalizedTag} (${item.imageWidth}x${item.imageHeight})`;
+            } else {
+                // Wallhaven mapping schema
+                imageUrl = item.path;
+                previewUrl = item.thumbs ? item.thumbs.small : item.path;
+                photoName = `Wallhaven-${item.id} (${item.resolution})`;
+            }
 
             const card = document.createElement('div');
             card.className = 'thumb-card';
@@ -538,7 +580,7 @@ async function performSearch(append = false) {
             searchResultsGrid.appendChild(card);
         });
 
-        if (data.hits.length > 0) {
+        if (itemsList.length > 0) {
             const loadMoreContainer = document.createElement('div');
             loadMoreContainer.id = 'loadMoreBtnContainer';
             loadMoreContainer.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 20px;';

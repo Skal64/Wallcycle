@@ -148,6 +148,8 @@
                         <option value="catppuccin">Catppuccin Mocha</option>
                     </select>
                 </div>
+                
+                <!-- Pixabay API Key Setting -->
                 <div class="setting-item" style="margin-top: 16px;">
                     <div class="setting-info">
                         <div style="display: flex; align-items: center; gap: 6px;">
@@ -159,9 +161,26 @@
                                 </div>
                             </div>
                         </div>
-                        <span class="setting-desc">Required to search and download online wallpapers</span>
+                        <span class="setting-desc">Required to search and download Pixabay wallpapers</span>
                     </div>
-                    <input type="password" id="pixabayKeyInput" class="setting-input" placeholder="Paste your API key..." style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 10px; border-radius: 4px; width: 220px; font-size: 0.85rem;" />
+                    <input type="password" id="pixabayKeyInput" class="setting-input" placeholder="Paste your Pixabay key..." style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 10px; border-radius: 4px; width: 220px; font-size: 0.85rem;" />
+                </div>
+
+                <!-- Wallhaven API Key Setting -->
+                <div class="setting-item" style="margin-top: 16px;">
+                    <div class="setting-info">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="setting-title">Wallhaven API Key</span>
+                            <div class="tooltip-container">
+                                <span style="background: var(--border-color, #444); color: var(--text-primary, #fff); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">?</span>
+                                <div class="tooltip-box">
+                                    You must make an account on Wallhaven first. Your API key can be found in your account settings.
+                                </div>
+                            </div>
+                        </div>
+                        <span class="setting-desc">Required to search and download Wallhaven wallpapers</span>
+                    </div>
+                    <input type="password" id="wallhavenKeyInput" class="setting-input" placeholder="Paste your Wallhaven key..." style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 10px; border-radius: 4px; width: 220px; font-size: 0.85rem;" />
                 </div>
             </div>
         </div>
@@ -174,9 +193,15 @@
                 <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Search Wallpapers Online</h3>
                 <button class="icon-btn" id="closeSearchBtn" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">&times;</button>
             </div>
-            <div class="search-bar">
-                <input type="text" id="searchQueryInput" placeholder="Search (e.g. cyberpunk, anime, nature)...">
+            <div class="search-bar" style="display: flex; gap: 8px; padding: 12px 16px; align-items: center; flex-wrap: wrap;">
+                <!-- Provider Selector -->
+                <select id="wallpaperProviderSelect" class="setting-select">
+                    <option value="pixabay">Pixabay</option>
+                    <option value="wallhaven">Wallhaven</option>
+                </select>
+                <input type="text" id="searchQueryInput" placeholder="Search (e.g. cyberpunk, anime, nature)..." style="flex: 1; min-width: 180px;">
                 <select id="resolutionSelect" class="setting-select">
+                    <option value="any">Any Resolution</option>
                     <option value="1920x1080">1920 x 1080 (FHD)</option>
                     <option value="2560x1440">2560 x 1440 (QHD)</option>
                     <option value="3840x2160">3840 x 2160 (4K)</option>
