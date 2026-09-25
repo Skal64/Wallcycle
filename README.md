@@ -4,4 +4,6 @@ Features:
 
 Add images from your local folders or search/download straight from Pixabay and Wallhaven using your own API key.
 
+If the UI doesn't function minimize the app and restore the window.
+
 ![Wallcycle Screenshot](./img-2026-09-24-22-05-58.png)
